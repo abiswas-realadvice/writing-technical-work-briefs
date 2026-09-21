@@ -6,7 +6,7 @@ when_to_use: Use when writing, drafting, or converting a technical report/analys
 
 # Executive brief writing and review
 
-Source: `field-guide/Technical-Work-Executive-Decisions.pdf` (also `.docx`), a 94-page field guide this skill distills. Consult the source document directly for nuance, citations, or a passage that feels compressed here.
+Source: `${CLAUDE_PLUGIN_ROOT}/field-guide/Technical-Work-Executive-Decisions.pdf` (also `.docx`), a 94-page field guide this skill distills. Consult it directly for nuance, citations, or a passage that feels compressed here — read the PDF in page ranges of 20 or fewer (e.g. pages 45–57 for design, 75–83 for templates and the rubric, 84–94 for sources and glossary).
 
 ## The standard
 
@@ -69,7 +69,7 @@ Typography, color, contrast, chart construction, and table formatting are the pa
 python3 "${CLAUDE_SKILL_DIR}/scripts/check_brief_design.py" path/to/brief.html
 ```
 
-It checks WCAG contrast ratios, heading hierarchy, alt text, table alignment, chart-spec completeness (including zero-baseline bar axes), color-alone status encoding, body text size, source/status footer presence, and color palette restraint — see [reference/design-and-visuals.md](reference/design-and-visuals.md#the-html-authoring-convention) for the authoring convention the checker expects (design tokens in `:root`, a `chart` class with a `data-chart-spec` JSON attribute, a `num` class for right-aligned numeric table cells, `status-*` classes that always carry visible text). This applies equally to a one-page brief and to a short multi-page report (five-page paper, long-form report): wrap each page in its own `class="page"` section and the heading check runs per page instead of over the whole document. Start new briefs from [assets/one-page-brief-template.html](assets/one-page-brief-template.html) for a single page, or [assets/five-page-brief-template.html](assets/five-page-brief-template.html) for a short multi-page report — both already follow the convention and pass every check.
+It checks WCAG contrast ratios, heading hierarchy, accessible names for images and inline SVGs, table alignment, chart-spec completeness (including zero-baseline bar axes), color-alone status encoding, body text size, source/status footer presence, and palette restraint by accent hue family — see [reference/design-and-visuals.md](reference/design-and-visuals.md#the-html-authoring-convention) for the authoring convention the checker expects (design tokens in `:root`, a `chart` class with a `data-chart-spec` JSON attribute, a `num` class for right-aligned numeric table cells, `status-*` classes that always carry visible text). This applies equally to a one-page brief and to a short multi-page report (five-page paper, long-form report): wrap each page in its own `class="page"` section and the heading check runs per page instead of over the whole document. Start new briefs from [assets/one-page-brief-template.html](assets/one-page-brief-template.html) for a single page, or [assets/five-page-brief-template.html](assets/five-page-brief-template.html) for a short multi-page report — both already follow the convention and pass every check.
 
 The checker deliberately does **not** try to grade the things that need judgment — whether a headline states the right claim, whether a causal verb matches the evidence, whether a caveat is placed well. Use the reference files and the rubric for those; use the script only for the mechanically checkable subset.
 

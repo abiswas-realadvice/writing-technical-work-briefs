@@ -67,6 +67,19 @@ Ask a reviewer to adopt five positions and, for each, record the strongest reaso
 
 High-value challenge questions: What concrete event does this category describe? Is this number observed, derived, simulated, or targeted? What is the denominator and baseline? Does the method support causation? What uncertainty could reverse the recommendation? Is the control mapped, deployed, used, or measured? Is this role value, workload, capacity, or headcount? What alternative did we reject and why? What happens if we defer? What will prove the decision worked?
 
+### Weaknesses that survive even in polished publications
+
+Reviewing major consulting and CEO-survey publications, the guide found these recurring faults in otherwise highly navigable, well-designed documents — worth checking for explicitly, because visual polish and analytic integrity are separate variables and a report can invite overinterpretation while looking exceptionally professional:
+
+- source notes and qualifications set too small for ordinary reading;
+- branded rhetoric that sounds more certain than the analysis warrants;
+- one-idea-per-page design that fragments a causal chain across several pages;
+- large decorative statistics that omit the denominator or evidence state;
+- survey perceptions discussed beside modeled results without strong visual separation;
+- recommendations that show no genuine alternative or cost of action.
+
+The right borrowing posture: copy the discipline of message titles, modularity, source notes, and method disclosure; strengthen evidence-state labeling, caveat placement, and decision alternatives beyond what those publications typically do.
+
 ## Design the meeting around the decision
 
 The pre-read and meeting are one system — a good paper can still fail if the session becomes a narrated document review. Open in two minutes: (1) decision and recommendation, (2) motivation and why now, (3) one concrete mechanism, (4) evidence and material uncertainty, (5) questions the group must resolve. Use most of the meeting for challenge and choice — presenters speaking for roughly a third of the allotted time, with the rest for questions and discussion, is a reasonable default ratio. Prepare direct answers to the hardest questions and know which appendix page supports each; if a question reveals a new assumption or decision condition, record it rather than improvising certainty. End by restating the decision in the room: what was approved, rejected, deferred, or conditioned; who owns the next action; by when; what evidence will return. A meeting that ends with "good discussion" but no decision record has not completed the interface.

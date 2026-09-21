@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Fixture: omitted end tags must not hide a numeric column</title>
+<style>
+:root { --bg: #ffffff; --fg: #1a1a1a; }
+body { background-color: var(--bg); color: var(--fg); font-size: 11pt; }
+</style>
+</head>
+<body>
+<h1>Baseline conclusion for this fixture</h1>
+<table>
+<thead><tr><th>Item<th class="num">Cost</thead>
+<tbody>
+<tr><td>A<td>$100
+<tr><td>B<td>$200
+<tr><td>C<td>$300
+</tbody>
+</table>
+<footer id="source-line">Source: fixture data. Evidence cutoff 2026-09-18.</footer>
+</body>
+</html>

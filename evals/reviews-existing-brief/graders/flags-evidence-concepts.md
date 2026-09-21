@@ -1,5 +1,6 @@
 ---
 type: regex
-pattern: '(?i)(evidence state|modeled|coverage|effectiveness|headcount|causal)'
+pattern: '(evidence state|modeled|coverage|effectiveness|headcount|causal)'
+flags: i
 match: contains
 ---

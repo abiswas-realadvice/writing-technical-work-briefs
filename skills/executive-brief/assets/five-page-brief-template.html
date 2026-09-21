@@ -111,6 +111,10 @@ footer {
   color: var(--color-muted);
   background-color: var(--color-bg);
 }
+@media print {
+  .page { page-break-after: always; border-bottom: none; }
+  .page:last-of-type { page-break-after: auto; }
+}
 </style>
 </head>
 <body>
@@ -198,6 +202,6 @@ footer {
   <p>Production control-effectiveness measurement has not started; the 90-day instrumentation plan is a dependency for the next review, not a condition of this approval.</p>
 </section>
 
-<footer id="source-line">Source: Risk simulation M3.2, run 2026-09-18. Evidence cutoff 2026-09-18. Executive paper &middot; first edition &middot; meeting draft.</footer>
+<footer id="source-line">Release-gate exposure &middot; executive paper &middot; E1.0 &middot; based on model M3.2 &middot; meeting draft &middot; 2026-09-21. Source: Risk simulation M3.2, run 2026-09-18; evidence cutoff 2026-09-18. Assurance appendix: link.</footer>
 </body>
 </html>

@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Fixture: ordinary real-world CSS the parser must survive</title>
+<style>
+/* Design tokens -- note the comment, and the 62.5% root reset below. */
+@import url("https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600&display=swap");
+:root {
+  font-size: 62.5%;
+  --bg: #ffffff;
+  --fg: #1a1a1a;
+}
+</style>
+<style>
+/* A second style block: body text is 1.6rem of a 10px root = 16px = 12pt. */
+body { background: var(--bg); color: var(--fg); font-size: 1.6rem; }
+h1 { color: var(--fg); background-color: var(--bg); font-size: 2.4rem; }
+@media (max-width: 600px) { body { padding: 0; } }
+</style>
+</head>
+<body>
+<h1>Baseline conclusion for this fixture</h1>
+<p>Body text sized in rem against a percentage root.</p>
+<img src="divider.png" alt="" role="presentation">
+<svg viewBox="0 0 10 10" width="10" height="10" role="img" aria-label="A labeled decorative-free chart"><rect width="10" height="10"/></svg>
+<footer id="source-line">Source: fixture data. Evidence cutoff 2026-09-18.</footer>
+</body>
+</html>

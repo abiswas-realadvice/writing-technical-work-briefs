@@ -58,6 +58,8 @@ Use the checklist before any release. Use the rubric to score a draft or settle 
 
 Score each criterion 0–5. A score of 3 means usable, 4 means strong, 5 means exemplary. **Any zero in Decision, Evidence integrity, or Material uncertainty is a release blocker regardless of total.**
 
+Present this as what it is: a synthesis created for the field guide, not an external or industry standard (the same is true of the seven-state evidence vocabulary). Its value is in forcing a consistent, domain-by-domain look at a draft; don't cite it to a reader as an authority, and don't let a high score substitute for the release blockers above.
+
 | Domain | Criterion | Points |
 |---|---|---|
 | Decision | Exact action, authority, timing, and boundary | 5 |

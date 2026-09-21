@@ -3,7 +3,7 @@ description: Asks for a one-page brief from a dense technical excerpt; checks th
 tags: [smoke, design]
 max_turns: 15
 timeout_seconds: 300
-allowed_tools: [Read, Skill]
+allowed_tools: [Read, Glob, Grep, Skill]
 ---
 
 We have a dense internal writeup about our risk-scoring model that needs to become a one-page executive brief before Thursday's Risk Committee meeting.

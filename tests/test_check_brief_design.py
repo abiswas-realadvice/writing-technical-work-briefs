@@ -84,6 +84,15 @@ class GoodBriefPassesEveryRule(unittest.TestCase):
         results = run_on(FIXTURES_DIR / "good-inline-style-and-units.html")
         self.assertEqual(failing_ids(results), set())
 
+    def test_real_world_css_fixture_passes(self):
+        # CSS comments, a Google Fonts @import, a 62.5% :root reset, a second
+        # <style> block, an @media block, a decorative alt="" image, and an
+        # aria-labelled SVG -- every one of these made the checker report a
+        # false failure (or, for the SVG, a false pass) before it was taught
+        # ordinary real-world CSS.
+        results = run_on(FIXTURES_DIR / "good-real-world-css.html")
+        self.assertEqual(failing_ids(results), set())
+
 
 class EachBadFixtureIsCaught(unittest.TestCase):
     # fixture filename -> rule ID(s) it must trip
@@ -100,6 +109,8 @@ class EachBadFixtureIsCaught(unittest.TestCase):
         "bad-footer.html": {"DES-12"},
         "bad-palette.html": {"DES-13"},
         "bad-multi-page-heading.html": {"DES-1"},
+        "bad-omitted-end-tags.html": {"DES-6"},
+        "bad-svg-no-name.html": {"DES-3"},
     }
 
     def test_every_fixture_exists(self):
@@ -173,6 +184,33 @@ class CoreHelpersAreCorrect(unittest.TestCase):
         self.assertAlmostEqual(checker.parse_length_to_px("1rem", root_px=16.0), 16.0, places=3)
         self.assertAlmostEqual(checker.parse_length_to_px("150%", root_px=16.0), 24.0, places=3)
         self.assertIsNone(checker.parse_length_to_px("2vw"))
+
+    def test_hue_families_group_tints_of_one_accent(self):
+        # A purple ramp (dark to pale) plus one green is two accents, not seven.
+        families = checker.group_hue_families(
+            ["#472466", "#6c5085", "#917ca3", "#b5a7c2", "#dad3e0", "#277b18", "#626469"]
+        )
+        self.assertEqual(len(families), 2)
+        # ...and seven genuinely different hues are still seven.
+        seven = ["#ff0000", "#ff8800", "#ffff00", "#00ff00", "#00ffff", "#0000ff", "#ff00ff"]
+        self.assertEqual(len(checker.group_hue_families(seven)), 7)
+
+    def test_numeric_cell_regex_accepts_common_forms(self):
+        for text in ("$1,200", "(12)", "-5", "−5", "+3%", "€4.50", "1.5x", "12 pp", "0.7"):
+            with self.subTest(text=text):
+                self.assertIsNotNone(checker.NUMERIC_RE.match(text))
+        for text in ("N/A", "High", "A · Defer", "3 in 1,000", "no change"):
+            with self.subTest(text=text):
+                self.assertIsNone(checker.NUMERIC_RE.match(text))
+
+    def test_tree_builder_closes_omitted_cells(self):
+        builder = checker.TreeBuilder()
+        builder.feed("<table><tr><td>A<td>B<tr><td>C<td>D</table>")
+        rows = [n for n in checker.walk(builder.root) if n.tag == "tr"]
+        self.assertEqual(len(rows), 2)
+        for row in rows:
+            cells = [c for c in row.content if isinstance(c, checker.Node)]
+            self.assertEqual([c.tag for c in cells], ["td", "td"])
 
     def test_computed_property_inline_style_wins_over_matching_rule(self):
         html = (

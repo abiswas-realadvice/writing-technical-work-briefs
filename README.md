@@ -33,7 +33,9 @@ Typography, color contrast, chart construction, and table formatting are the par
 python3 skills/executive-brief/scripts/check_brief_design.py path/to/brief.html
 ```
 
-It checks 13 rules — WCAG contrast ratios, heading hierarchy, alt text, table header rows and numeric alignment, chart-spec completeness, zero-baseline bar axes, color-alone status encoding, body text size, a source/status footer, and color-palette restraint — and exits non-zero if anything fails. It does **not** try to check the things that need judgment (whether a headline states the right claim, whether a causal verb matches the evidence); those stay with the reference files, the checklist, and the rubric.
+It checks 13 rules — WCAG contrast ratios, heading hierarchy, accessible names for images and inline SVGs, table header rows and numeric alignment, chart-spec completeness, zero-baseline bar axes, color-alone status encoding, body text size, a source/status footer, and palette restraint (counted as accent *hue families*, so a brand's tint ramp is one color, not five) — and exits non-zero if anything fails. It does **not** try to check the things that need judgment (whether a headline states the right claim, whether a causal verb matches the evidence); those stay with the reference files, the checklist, and the rubric.
+
+It's built for real-world HTML, not just its own templates: it reads every `<style>` block, strips comments and `@import` lines, resolves a simplified CSS cascade (inline styles, specificity, inheritance, `:root` resets, `rem`/`px`/`%` units), and applies HTML's implied-end-tag rules so markup that omits `</td>` or `</li>` still parses into the right structure. The limits of that simplification are documented at the top of the script.
 
 This isn't one-pager-only. The heading-hierarchy rule is page-aware: with no `class="page"` element, the whole document is one implicit page (a one-page brief); with one or more `<section class="page">` elements, each is checked independently for its own message-headline `<h1>` and heading order, which is how the guide's five-page paper and long-form report architectures actually work — one sentence headline per page, not one for the whole artifact. `skills/executive-brief/assets/one-page-brief-template.html` and `skills/executive-brief/assets/five-page-brief-template.html` both follow the convention and pass every check.
 
@@ -41,7 +43,7 @@ This isn't one-pager-only. The heading-hierarchy rule is page-aware: with no `cl
 
 Two different things are both called "tests" here, deliberately kept separate:
 
-**`tests/` — the actual deterministic test suite.** Zero dependencies (Python stdlib only), zero network access, zero API cost, runs in milliseconds. It proves the checker script is correct: both real templates (one-page and five-page) must pass every rule, and twelve `bad-*` fixtures each deliberately violate exactly one rule (or, for the multi-page case, a rule scoped to one specific page) and must trip it.
+**`tests/` — the actual deterministic test suite.** Zero dependencies (Python stdlib only), zero network access, zero API cost, runs in milliseconds. It proves the checker script is correct: both real templates (one-page and five-page) and two `good-*` fixtures of ordinary real-world CSS must pass every rule, and fourteen `bad-*` fixtures each deliberately violate exactly one rule (or, for the multi-page case, a rule scoped to one specific page) and must trip it. It runs in CI on every push and pull request ([`.github/workflows/tests.yml`](.github/workflows/tests.yml)) across Python 3.10–3.13.
 
 ```bash
 python3 -m unittest discover -s tests -v

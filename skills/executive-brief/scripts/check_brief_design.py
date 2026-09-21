@@ -12,25 +12,32 @@ It deliberately does not (and cannot) check whether a headline states the
 right claim, whether a causal verb matches the evidence, or any other rule
 in the guide that needs judgment rather than measurement.
 
-This is a small, self-contained tool with no third-party dependencies. To
-check contrast and font size on real-world CSS (not just documents authored
-to this repo's own convention), it resolves a *simplified* cascade: for each
-text-bearing element it checks the element's own inline style="..." first
-(inline always wins, as in real CSS), then the matching <style>-block rules,
-ranked by a (ids, classes, types) specificity approximation and source
-order, and inherits color/background/font-size up the tree the way a
-browser would. Deliberate, documented limits of that simplification:
-  - selectors: type, class, id, "*", descendant ("A B") and child ("A > B")
-    combinators only. A rule using "+", "~", attribute selectors, or any
-    ":pseudo-class" is skipped for cascade purposes (never wins a match).
-  - no "!important", no <style> media queries or other @-rules (stripped
-    before parsing).
+This is a small, self-contained tool with no third-party dependencies. It
+is built to work on real-world executive HTML, not only on documents
+authored to this repo's own convention: the HTML parser applies the
+implied-end-tag rules that let real markup omit </td>, </tr>, </li>, </p>;
+every <style> block is read, with comments and @import/@charset lines
+stripped; and contrast and font size are resolved through a *simplified*
+cascade. For each text-bearing element that cascade checks the element's
+own inline style="..." first (inline always wins, as in real CSS), then the
+matching <style>-block rules (":root" matches <html>), ranked by an
+(ids, classes, types) specificity approximation and source order, and
+inherits color/background/font-size up the tree the way a browser would.
+Deliberate, documented limits of that simplification:
+  - selectors: type, class, id, "*", ":root", descendant ("A B") and child
+    ("A > B") combinators only. A rule using "+", "~", attribute selectors,
+    or any other ":pseudo-class" is skipped for cascade purposes.
+  - no "!important"; @media and other braced @-rules are stripped, so a
+    rule inside one is simply absent (print/mobile overrides aren't checked).
   - colors must be hex (#rgb/#rrggbb, resolved through var(--token) chains)
     or one of a small set of named CSS colors; rgb()/hsl()/etc. are not
     understood, and an element using one is silently skipped for contrast.
   - lengths: pt, px, rem, em, and % are converted to points; em is treated
     as relative to the resolved root font size rather than the parent's
     (a simplification -- true em inheritance would need a full cascade).
+  - palette restraint counts accent *hue families* (tints and shades of one
+    hue are one family; grayscale is the neutral foundation), so a brand's
+    monochrome ramp isn't penalized as several colors.
 
 Usage:
     python3 check_brief_design.py path/to/brief.html [--json]
@@ -59,7 +66,10 @@ TEXT_BEARING_TAGS = {
     "a", "figcaption", "label", "button", "dt", "dd", "caption", "summary",
     "blockquote", "strong", "em", "b", "i", "small", "legend",
 }
-NUMERIC_RE = re.compile(r"^\(?-?\$?\d[\d,]*(\.\d+)?%?\)?$")
+# A cell that reads as a number: optional accounting parens, sign (incl.
+# unicode minus), currency symbol, digits with separators, decimals, and a
+# unit-ish suffix (%, x, pp, bps, pt).
+NUMERIC_RE = re.compile(r"^\(?[+\-−]?[$€£¥]?\d[\d,]*(?:\.\d+)?(?:\s?(?:%|x|pp|bps|pt))?\)?$")
 STATUS_CLASS_RE = re.compile(r"^status-[\w-]+$")
 HEX_RE = re.compile(r"#[0-9a-fA-F]{3,6}\b")
 NAMED_COLORS = {
@@ -112,13 +122,59 @@ def walk(node):
             yield from walk(item)
 
 
+# Opening one of these tags implicitly closes the nearest open ancestor of
+# the target kind (passing through anything in between, e.g. a <td> on the
+# way up to its <tr>), unless a boundary element is reached first -- the
+# HTML parsing rules that let real documents omit </td>, </tr>, </li>, </p>
+# and still nest correctly. Without this, an omitted </td> nests the next
+# cell inside the previous one and every per-column check silently sees one
+# column.
+_P_BOUNDARY = {
+    "body", "div", "section", "article", "main", "header", "footer", "aside",
+    "nav", "td", "th", "li", "dd", "dt", "blockquote", "figure", "details", "form",
+}
+_TABLE_SECTIONS = {"tbody", "thead", "tfoot"}
+IMPLIED_CLOSE = {
+    "td": ({"td", "th"}, {"tr", "table"} | _TABLE_SECTIONS),
+    "th": ({"td", "th"}, {"tr", "table"} | _TABLE_SECTIONS),
+    "tr": ({"tr"}, {"table"} | _TABLE_SECTIONS),
+    "tbody": (_TABLE_SECTIONS, {"table"}),
+    "thead": (_TABLE_SECTIONS, {"table"}),
+    "tfoot": (_TABLE_SECTIONS, {"table"}),
+    "li": ({"li"}, {"ul", "ol", "menu"}),
+    "dt": ({"dt", "dd"}, {"dl"}),
+    "dd": ({"dt", "dd"}, {"dl"}),
+    "option": ({"option"}, {"select", "datalist", "optgroup"}),
+}
+# Block-level starts that implicitly close an open <p> (HTML spec list).
+_P_CLOSERS = {
+    "address", "article", "aside", "blockquote", "details", "div", "dl",
+    "fieldset", "figcaption", "figure", "footer", "form", "h1", "h2", "h3",
+    "h4", "h5", "h6", "header", "hr", "main", "nav", "ol", "p", "pre",
+    "section", "table", "ul",
+}
+
+
 class TreeBuilder(HTMLParser):
     def __init__(self):
         super().__init__(convert_charrefs=True)
         self.root = Node("#root", {})
         self.stack = [self.root]
 
+    def _implied_close(self, closes, boundary):
+        for i in range(len(self.stack) - 1, 0, -1):
+            t = self.stack[i].tag
+            if t in boundary:
+                return
+            if t in closes:
+                del self.stack[i:]
+                return
+
     def handle_starttag(self, tag, attrs):
+        if tag in IMPLIED_CLOSE:
+            self._implied_close(*IMPLIED_CLOSE[tag])
+        if tag in _P_CLOSERS:
+            self._implied_close({"p"}, _P_BOUNDARY)
         node = Node(tag, attrs)
         node.parent = self.stack[-1]
         self.stack[-1].content.append(node)
@@ -140,23 +196,34 @@ class TreeBuilder(HTMLParser):
 # --------------------------------------------------------------------------
 
 def extract_style_block(html_text):
-    m = re.search(r"<style[^>]*>(.*?)</style>", html_text, re.DOTALL | re.IGNORECASE)
-    return m.group(1) if m else ""
+    """Every <style> block in the document, concatenated in source order,
+    with /* comments */ and brace-less at-rules (@import, @charset,
+    @namespace, @layer x;) removed -- any of those left in place would be
+    swallowed into the next rule's selector text and break its matching."""
+    blocks = re.findall(r"<style[^>]*>(.*?)</style>", html_text, re.DOTALL | re.IGNORECASE)
+    css = "\n".join(blocks)
+    css = re.sub(r"/\*.*?\*/", "", css, flags=re.DOTALL)
+    # Quoted strings and url(...) are consumed whole: a Google Fonts URL like
+    # ...wght@400;600... has a ';' inside it that must not end the statement.
+    css = re.sub(
+        r"""@(?:import|charset|namespace|layer)\b(?:"[^"]*"|'[^']*'|url\([^)]*\)|[^{;"'])*;""",
+        "",
+        css,
+    )
+    return css
 
 
 def parse_root_tokens(css_text):
     tokens = {}
-    m = re.search(r":root\s*\{([^}]*)\}", css_text, re.DOTALL)
-    if not m:
-        return tokens
-    for decl in m.group(1).split(";"):
-        decl = decl.strip()
-        if not decl or ":" not in decl:
-            continue
-        prop, _, value = decl.partition(":")
-        prop = prop.strip()
-        if prop.startswith("--"):
-            tokens[prop] = value.strip()
+    for m in re.finditer(r":root\s*\{([^}]*)\}", css_text, re.DOTALL):
+        for decl in m.group(1).split(";"):
+            decl = decl.strip()
+            if not decl or ":" not in decl:
+                continue
+            prop, _, value = decl.partition(":")
+            prop = prop.strip()
+            if prop.startswith("--"):
+                tokens[prop] = value.strip()
     return tokens
 
 
@@ -180,10 +247,11 @@ def parse_rules(css_text, tokens):
     No nesting, no nested nesting of @-rules -- @media/@keyframes/etc. are
     stripped first, so a rule inside one is simply absent, not misparsed.
     A plain-color `background` shorthand is also exposed as
-    `background-color` so ordinary shorthand usage still resolves.
+    `background-color` so ordinary shorthand usage still resolves. `:root`
+    blocks are kept as ordinary rules (matched to the <html> element) so a
+    `:root { font-size: 62.5% }` reset or `:root { color: ... }` takes effect.
     """
-    body = re.sub(r":root\s*\{[^}]*\}", "", css_text, flags=re.DOTALL)
-    body = re.sub(r"@[^{;]*\{(?:[^{}]|\{[^{}]*\})*\}", "", body, flags=re.DOTALL)
+    body = re.sub(r"@[^{;]*\{(?:[^{}]|\{[^{}]*\})*\}", "", css_text, flags=re.DOTALL)
     rules = []
     for m in re.finditer(r"([^{}]+)\{([^{}]*)\}", body, re.DOTALL):
         selector = m.group(1).strip()
@@ -312,10 +380,14 @@ def computed_property(node, rules, css_tokens, prop, default=None, cache=None):
                 continue
             for part in selector.split(","):
                 part = part.strip()
-                if not part or ":" in part or "[" in part:
+                if part == ":root":
+                    matched = current.tag == "html"
+                elif not part or ":" in part or "[" in part:
                     continue
-                sel_tokens = tokenize_selector(part)
-                if sel_tokens and selector_matches_node(sel_tokens, current):
+                else:
+                    sel_tokens = tokenize_selector(part)
+                    matched = bool(sel_tokens) and selector_matches_node(sel_tokens, current)
+                if matched:
                     rank = (specificity(part), order_index)
                     if best is None or rank >= best[0]:
                         best = (rank, decls[prop])
@@ -361,13 +433,14 @@ def px_to_pt(px):
 
 
 def resolve_root_px(rules):
+    root_px = 16.0
     for selector, decls in rules:
         parts = [p.strip() for p in selector.split(",")]
-        if "html" in parts and "font-size" in decls:
+        if ("html" in parts or ":root" in parts) and "font-size" in decls:
             px = parse_length_to_px(decls["font-size"], root_px=16.0)
             if px is not None:
-                return px
-    return 16.0
+                root_px = px  # last declaration in source order wins
+    return root_px
 
 
 def normalize_hex(value):
@@ -490,12 +563,36 @@ def check_sentence_case_headings(all_nodes):
     return RuleResult("DES-2", "Headings use sentence case (short labels may be capitals)", not details, details)
 
 
+def _is_decorative(node):
+    role = node.attrs.get("role", "").strip().lower()
+    return role in ("presentation", "none") or node.attrs.get("aria-hidden", "").strip().lower() == "true"
+
+
 def check_alt_text(all_nodes):
     details = []
     for img in [n for n in all_nodes if n.tag == "img"]:
-        if not img.attrs.get("alt", "").strip():
-            details.append(f"<img src={img.attrs.get('src', '(no src)')!r}> has no non-empty alt text")
-    return RuleResult("DES-3", "Every image has non-empty alt text", not details, details)
+        src = img.attrs.get("src", "(no src)")
+        if "alt" not in img.attrs:
+            details.append(f"<img src={src!r}> has no alt attribute")
+        elif not img.attrs["alt"].strip() and not _is_decorative(img):
+            details.append(
+                f"<img src={src!r}> has an empty alt: describe the takeaway, or mark it decorative"
+                ' with role="presentation" or aria-hidden="true"'
+            )
+    for svg in [n for n in all_nodes if n.tag == "svg" and not n.is_descendant_of("svg")]:
+        if _is_decorative(svg):
+            continue
+        has_title = any(
+            c.tag == "title" and c.text().strip() for c in svg.content if isinstance(c, Node)
+        )
+        has_aria = bool(svg.attrs.get("aria-label", "").strip() or svg.attrs.get("aria-labelledby", "").strip())
+        if not has_title and not has_aria:
+            label = svg.attrs.get("id") or "(no id)"
+            details.append(
+                f"<svg id={label!r}> has no accessible name: add a <title>, aria-label, or aria-labelledby"
+                ' (or aria-hidden="true" if purely decorative)'
+            )
+    return RuleResult("DES-3", "Images and inline SVGs have an accessible name (alt text, <title>, or aria-label)", not details, details)
 
 
 def check_contrast(all_nodes, rules, css_tokens, root_px):
@@ -557,7 +654,7 @@ def check_tables(all_nodes):
             for n in walk(table)
         )
         if not has_header:
-            header_details.append(f"{label} has no <thead> with <th> header cells")
+            header_details.append(f"{label} has no <thead> with <th> header cells (a <thead> is what repeats the header row across printed pages)")
 
         body_rows = [n for n in walk(table) if n.tag == "tr" and not n.is_descendant_of("thead")]
         columns = {}
@@ -656,21 +753,71 @@ def check_footer(all_nodes):
     return RuleResult("DES-12", "A footer names the source and evidence cutoff", not details, details)
 
 
-def check_palette(tokens, rules, max_colors=6):
+def hue_degrees(hex_value):
+    rgb = hex_to_rgb(hex_value)
+    if rgb is None:
+        return None
+    r, g, b = (c / 255.0 for c in rgb)
+    mx, mn = max(r, g, b), min(r, g, b)
+    if mx == mn:
+        return None
+    d = mx - mn
+    if mx == r:
+        h = ((g - b) / d) % 6
+    elif mx == g:
+        h = (b - r) / d + 2
+    else:
+        h = (r - g) / d + 4
+    return (h * 60.0) % 360.0
+
+
+def group_hue_families(hex_values, tolerance=20.0):
+    """Cluster non-grayscale colors by hue so tints and shades of one accent
+    count as one family: the guide asks for 'a neutral foundation and one
+    primary accent', and a brand's own tints of that accent are still that
+    accent, not extra colors. Grayscale (near-equal channels) is excluded as
+    the neutral foundation."""
+    hued = []
+    for hx in hex_values:
+        if is_grayscale(hx):
+            continue
+        h = hue_degrees(hx)
+        if h is not None:
+            hued.append((h, hx))
+    hued.sort()
+    families = []
+    for h, hx in hued:
+        if families and (h - families[-1]["last_hue"]) <= tolerance:
+            families[-1]["colors"].append(hx)
+            families[-1]["last_hue"] = h
+        else:
+            families.append({"first_hue": h, "last_hue": h, "colors": [hx]})
+    # hue is circular: merge a family near 360 into one near 0
+    if len(families) > 1 and (360.0 - families[-1]["last_hue"]) + families[0]["first_hue"] <= tolerance:
+        families[0]["colors"] = families[-1]["colors"] + families[0]["colors"]
+        families.pop()
+    return [f["colors"] for f in families]
+
+
+def check_palette(all_nodes, tokens, rules, max_families=6):
     colors = set()
     for value in tokens.values():
         for m in HEX_RE.findall(value):
             colors.add(normalize_hex(m))
     for _, decls in rules:
-        for prop in ("color", "background-color", "border-color"):
-            if prop in decls:
-                for m in HEX_RE.findall(decls[prop]):
+        for prop, value in decls.items():
+            if not prop.startswith("--"):
+                for m in HEX_RE.findall(value):
                     colors.add(normalize_hex(m))
-    nongray = sorted(c for c in colors if not is_grayscale(c))
+    for n in all_nodes:
+        for m in HEX_RE.findall(n.attrs.get("style", "")):
+            colors.add(normalize_hex(m))
+    families = group_hue_families(sorted(colors))
     details = []
-    if len(nongray) > max_colors:
-        details.append(f"{len(nongray)} distinct non-grayscale colors declared (max {max_colors}): {', '.join(nongray)}")
-    return RuleResult("DES-13", f"Color palette stays within {max_colors} non-grayscale accent colors", not details, details)
+    if len(families) > max_families:
+        listing = "; ".join(", ".join(f) for f in families)
+        details.append(f"{len(families)} distinct accent hue families in use (max {max_families}): {listing}")
+    return RuleResult("DES-13", f"Color palette stays within {max_families} accent hue families (tints of one accent count once)", not details, details)
 
 
 # --------------------------------------------------------------------------
@@ -699,7 +846,7 @@ def check(html_text):
     results.append(check_status_text(all_nodes))
     results.append(check_body_font_size(all_nodes, rules, tokens, root_px))
     results.append(check_footer(all_nodes))
-    results.append(check_palette(tokens, rules))
+    results.append(check_palette(all_nodes, tokens, rules))
     return results
 
 
