@@ -1,0 +1,8 @@
+{
+  "name": "technical-work-briefs",
+  "description": "Write and review decision-ready executive briefs from dense technical work: structuring the argument, labeling evidence and uncertainty honestly, writing with precision, and designing an accessible reading experience. Includes a deterministic design-element checker.",
+  "version": "1.1.0",
+  "author": {
+    "name": "Apratim Biswas"
+  }
+}

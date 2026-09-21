@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Fixture: per-page heading violation in a multi-page document</title>
+<style>
+:root { --bg: #ffffff; --fg: #1a1a1a; }
+body { background-color: var(--bg); color: var(--fg); font-size: 11pt; }
+</style>
+</head>
+<body>
+<section class="page" id="page-1">
+  <h1>Page one is a correctly formed page</h1>
+  <p>Body text.</p>
+</section>
+<section class="page" id="page-2">
+  <h1>Page two skips from h1 straight to h3</h1>
+  <h3>This heading skips h2 within page two</h3>
+  <p>Body text.</p>
+</section>
+<section class="page" id="page-3">
+  <h1>Page three is also correctly formed</h1>
+  <p>Body text.</p>
+</section>
+<footer id="source-line">Source: fixture data. Evidence cutoff 2026-09-18.</footer>
+</body>
+</html>

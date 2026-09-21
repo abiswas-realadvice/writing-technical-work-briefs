@@ -1,0 +1,14 @@
+{
+  "name": "technical-work-briefs",
+  "owner": {
+    "name": "Apratim Biswas"
+  },
+  "description": "Marketplace for the technical-work-briefs plugin: write and review decision-ready executive briefs from dense technical work.",
+  "plugins": [
+    {
+      "name": "technical-work-briefs",
+      "source": ".",
+      "description": "Write and review decision-ready executive briefs from dense technical work, with a deterministic checker for the design elements of a brief that can be checked by code instead of judgment."
+    }
+  ]
+}

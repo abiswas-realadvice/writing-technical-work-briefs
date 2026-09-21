@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+evals/results/
+.DS_Store
+
+# Local real-world validation material -- not part of the plugin, never committed.
+/test_cases/

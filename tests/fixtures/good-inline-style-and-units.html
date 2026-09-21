@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Fixture: inline style precedence and non-pt length units</title>
+<style>
+:root { --bg: #ffffff; --fg: #1a1a1a; }
+body { background-color: var(--bg); color: var(--fg); font-size: 1rem; }
+h1 { color: var(--fg); background-color: var(--bg); font-size: 24px; }
+.sub { color: var(--fg); }
+.sub a { text-decoration: underline; }
+.chip { color: #fff; }
+</style>
+</head>
+<body>
+<h1>Baseline conclusion for this fixture</h1>
+<p class="sub">Body text at a rem-based size, with an <a href="#">underlined link reached through a descendant selector</a>.</p>
+<p><span class="chip" style="background:#1a1a1a">A chip whose background only exists as an inline style, and would read white-on-white if inline styles were ignored</span></p>
+<footer id="source-line">Source: fixture data. Evidence cutoff 2026-09-18.</footer>
+</body>
+</html>
